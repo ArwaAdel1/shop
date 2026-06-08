@@ -70,4 +70,38 @@ const deleteOrder = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getOrders, getOrderStats, updateStatus, deleteOrder };
+
+// GET /api/orders/analytics
+const getAnalytics = async (req, res) => {
+  try {
+    const { months = 6 } = req.query;
+    const since = new Date();
+    since.setMonth(since.getMonth() - Number(months));
+
+    // Monthly revenue
+    const monthly = await Order.aggregate([
+      { $match: { createdAt: { $gte: since }, status: { $in: ["تم الدفع", "تم الشحن", "مكتمل"] } } },
+      { $group: {
+        _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
+        revenue: { $sum: "$total" },
+        count: { $sum: 1 }
+      }},
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Top products
+    const topProducts = await Order.aggregate([
+      { $match: { status: { $nin: ["ملغي"] } } },
+      { $unwind: "$items" },
+      { $group: { _id: "$items.name", total: { $sum: "$items.qty" }, revenue: { $sum: { $multiply: ["$items.price", "$items.qty"] } } } },
+      { $sort: { total: -1 } },
+      { $limit: 5 }
+    ]);
+
+    res.json({ monthly, topProducts });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { createOrder, getOrders, getOrderStats, updateStatus, deleteOrder, getAnalytics };

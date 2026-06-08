@@ -3,7 +3,7 @@ const Product = require("../models/Product");
 // GET /api/products
 const getProducts = async (req, res) => {
   try {
-    const { category, subcategory, featured, search, page = 1, limit = 12, active } = req.query;
+    const { category, subcategory, featured, search, page = 1, limit = 12, active, priceMin, priceMax, sortBy, sortOrder } = req.query;
     const query = {};
 
     if (category) query.category = category;
@@ -20,11 +20,19 @@ const getProducts = async (req, res) => {
       ];
     }
 
+    // Price filter
+    if (priceMin) query.price = { ...query.price, $gte: Number(priceMin) };
+    if (priceMax) query.price = { ...query.price, $lte: Number(priceMax) };
+
+    // Sort
+    let sortObj = { createdAt: -1 };
+    if (sortBy) sortObj = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
     const skip = (page - 1) * limit;
     const total = await Product.countDocuments(query);
     const products = await Product.find(query)
       .populate("category", "name_ar name_en slug icon")
-      .sort({ createdAt: -1 })
+      .sort(sortObj)
       .skip(skip)
       .limit(Number(limit));
 
