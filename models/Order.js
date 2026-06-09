@@ -11,12 +11,22 @@ const orderItemSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, unique: true },
-    customerName: { type: String },
-    customerPhone: { type: String },
+
+    // بيانات العميل
+    customerName:    { type: String },
+    customerPhone:   { type: String },
+    customerAddress: {
+      governorate: { type: String },   // المحافظة
+      city:        { type: String },   // المدينة / المركز
+      street:      { type: String },   // الشارع / التفاصيل
+      landmark:    { type: String },   // علامة مميزة (اختياري)
+    },
+
     items: [orderItemSchema],
-    total: { type: Number, required: true },
-    paymentMethod: { type: String, required: true },
+    total:             { type: Number, required: true },
+    paymentMethod:     { type: String, required: true },
     paymentMethodName: { type: String },
+
     status: {
       type: String,
       enum: ["جديد", "تم الدفع", "تم الشحن", "مكتمل", "ملغي"],

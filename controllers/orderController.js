@@ -3,9 +3,52 @@ const Order = require("../models/Order");
 // POST /api/orders — create order from storefront
 const createOrder = async (req, res) => {
   try {
-    const { items, total, paymentMethod, paymentMethodName, customerName, customerPhone, notes } = req.body;
+    const {
+      items, total, paymentMethod, paymentMethodName,
+      customerName, customerPhone, customerAddress, notes,
+    } = req.body;
+
     if (!items?.length) return res.status(400).json({ message: "السلة فارغة" });
-    const order = await Order.create({ items, total, paymentMethod, paymentMethodName, customerName, customerPhone, notes });
+
+    // ── التحقق من المخزون ──────────────────────────────────────────
+    const Product = require("../models/Product");
+    const stockErrors = [];
+
+    for (const item of items) {
+      if (!item.productId) continue;
+      const product = await Product.findById(item.productId).select("name_ar stock trackStock isActive");
+      if (!product || !product.isActive) {
+        stockErrors.push(`"${item.name}" لم يعد متاحاً`);
+        continue;
+      }
+      if (product.trackStock && product.stock < item.qty) {
+        if (product.stock === 0) {
+          stockErrors.push(`"${item.name}" نفذت الكمية`);
+        } else {
+          stockErrors.push(`"${item.name}" — الكمية المتاحة فقط ${product.stock}`);
+        }
+      }
+    }
+
+    if (stockErrors.length) {
+      return res.status(400).json({ message: stockErrors.join(" | "), stockErrors });
+    }
+
+    // ── إنشاء الطلب ───────────────────────────────────────────────
+    const order = await Order.create({
+      items, total, paymentMethod, paymentMethodName,
+      customerName, customerPhone, customerAddress, notes,
+    });
+
+    // ── خصم الكمية من المخزون ──────────────────────────────────────
+    for (const item of items) {
+      if (!item.productId) continue;
+      await Product.findOneAndUpdate(
+        { _id: item.productId, trackStock: true },
+        { $inc: { stock: -item.qty } }
+      );
+    }
+
     res.status(201).json({ orderId: order._id, orderNumber: order.orderNumber });
   } catch (err) {
     res.status(400).json({ message: err.message });

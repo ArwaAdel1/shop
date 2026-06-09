@@ -3,13 +3,17 @@ const Product = require("../models/Product");
 // GET /api/products
 const getProducts = async (req, res) => {
   try {
-    const { category, subcategory, featured, search, page = 1, limit = 12, active, priceMin, priceMax, sortBy, sortOrder } = req.query;
+    const { category, subcategory, featured, search, page = 1, limit = 12, active, priceMin, priceMax, sortBy, sortOrder, inStock } = req.query;
     const query = {};
 
     if (category) query.category = category;
     if (subcategory) query.subcategorySlug = subcategory;
     if (featured === "true") query.isFeatured = true;
     if (active !== undefined) query.isActive = active === "true";
+    // فلتر: عرض المنتجات المتاحة فقط (stock > 0 لو trackStock=true)
+    if (inStock === "true") {
+      query.$or = [{ trackStock: false }, { trackStock: true, stock: { $gt: 0 } }];
+    }
     if (search) {
       query.$or = [
         { name_ar: { $regex: search, $options: "i" } },

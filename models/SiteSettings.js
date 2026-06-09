@@ -20,10 +20,15 @@ const siteSettingsSchema = new mongoose.Schema(
     },
 
     payment: {
-      vodafoneCash: { number: String, name: String, isActive: { type: Boolean, default: true } },
-      etisalatCash: { number: String, name: String, isActive: { type: Boolean, default: true } },
-      fawry: { code: String, instructions_ar: String, isActive: { type: Boolean, default: true } },
-      instaPay: { username: String, instructions_ar: String, isActive: { type: Boolean, default: true } },
+      vodafoneCash:  { number: String, name: String,          isActive: { type: Boolean, default: true } },
+      etisalatCash:  { number: String, name: String,          isActive: { type: Boolean, default: true } },
+      fawry:         { code: String,   instructions_ar: String, isActive: { type: Boolean, default: true } },
+      instaPay:      { username: String, instructions_ar: String, isActive: { type: Boolean, default: true } },
+      cashOnDelivery: {
+        isActive:       { type: Boolean, default: false },
+        instructions_ar: { type: String, default: "سيتم تحصيل المبلغ عند استلام الطلب" },
+        extraFee:       { type: Number,  default: 0 },   // رسوم إضافية لو فيه
+      },
     },
 
     aboutUs_ar: { type: String },
